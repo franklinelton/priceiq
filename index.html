@@ -313,28 +313,74 @@ function computeElasticity() {
   Object.entries(byProduct).forEach(([prod, rows]) => {
     if(rows.length < 3) return;
     const prices = rows.map(r => parseFloat(r.preco || r.price || r.preco_venda || 0));
-    const qtds = rows.map(r => parseFloat(r.quantidade || r.qty || r.volume || 0));
+    const qtds  = rows.map(r => parseFloat(r.quantidade || r.qty || r.volume || 0));
+    const promos = rows.map(r => (r.promocao || r.promo || r.desconto) ? 1 : 0);
     const cat = rows[0].categoria || rows[0].category || '-';
-    const withPromo = rows.filter(r => r.promocao || r.promo || r.desconto).length;
+    const withPromo = promos.filter(v=>v===1).length;
 
     const avgP = prices.reduce((a,b)=>a+b,0)/prices.length;
     const avgQ = qtds.reduce((a,b)=>a+b,0)/qtds.length;
     const totalRev = prices.reduce((a,b,i)=>a+b*qtds[i],0);
 
-    // Linear regression for elasticity
-    let sumXY=0, sumX2=0;
-    const lnP = prices.map(p=>Math.log(Math.max(p,0.01)));
-    const lnQ = qtds.map(q=>Math.log(Math.max(q,0.01)));
-    const mP = lnP.reduce((a,b)=>a+b,0)/lnP.length;
-    const mQ = lnQ.reduce((a,b)=>a+b,0)/lnQ.length;
-    lnP.forEach((x,i)=>{ sumXY+=(x-mP)*(lnQ[i]-mQ); sumX2+=(x-mP)**2; });
-    const elast = sumX2>0.001 ? sumXY/sumX2 : 0;
+    // --- Regressão múltipla log-log com dummy de promoção ---
+    // Modelo: ln(Q) = α + β1·ln(P) + β2·D
+    // β1 = elasticidade pura de preço (isolada do efeito promoção)
+    // β2 = uplift promocional (ln-escala → (e^β2 - 1) × 100% de ganho de volume)
+    //
+    // Resolvemos via OLS com 2 variáveis explicativas usando as equações normais:
+    // [Σx1² Σx1x2] [β1]   [Σx1y]
+    // [Σx1x2 Σx2²] [β2] = [Σx2y]
+    // onde x1=ln(P)-média, x2=D-média, y=ln(Q)-média  (centralizados para remover α)
+
+    const n = rows.length;
+    const lnP = prices.map(p => Math.log(Math.max(p, 0.01)));
+    const lnQ = qtds.map(q  => Math.log(Math.max(q, 0.01)));
+    const D   = promos; // 0 ou 1
+
+    const mLnP = lnP.reduce((a,b)=>a+b,0)/n;
+    const mLnQ = lnQ.reduce((a,b)=>a+b,0)/n;
+    const mD   = D.reduce((a,b)=>a+b,0)/n;
+
+    // Variáveis centralizadas
+    const x1 = lnP.map(v => v - mLnP);
+    const x2 = D.map(v   => v - mD);
+    const y  = lnQ.map(v => v - mLnQ);
+
+    // Elementos da matriz 2×2
+    let s11=0, s12=0, s22=0, sy1=0, sy2=0;
+    for(let i=0;i<n;i++){
+      s11 += x1[i]*x1[i];
+      s12 += x1[i]*x2[i];
+      s22 += x2[i]*x2[i];
+      sy1 += x1[i]*y[i];
+      sy2 += x2[i]*y[i];
+    }
+
+    // Determinante — se próximo de zero, variáveis colineares; cai para regressão simples
+    const det = s11*s22 - s12*s12;
+    let beta1, beta2;
+    if(Math.abs(det) > 1e-9) {
+      // Regra de Cramer
+      beta1 = (sy1*s22 - sy2*s12) / det;  // elasticidade pura de preço
+      beta2 = (s11*sy2 - s12*sy1) / det;  // coeficiente da dummy promoção
+    } else {
+      // Fallback: regressão simples só com preço
+      beta1 = s11 > 0.001 ? sy1/s11 : 0;
+      beta2 = 0;
+    }
+
+    // Uplift promocional em %: quanto o volume sobe só por haver promoção,
+    // mantendo o preço constante  →  (e^β2 - 1) × 100
+    const upliftPct = (Math.exp(beta2) - 1) * 100;
 
     elasticityData.push({
-      produto: prod, categoria: cat, elasticidade: parseFloat(elast.toFixed(2)),
+      produto: prod, categoria: cat,
+      elasticidade: parseFloat(beta1.toFixed(2)),   // β1: elasticidade limpa
+      uplift: parseFloat(upliftPct.toFixed(1)),      // uplift promocional em %
+      beta2: parseFloat(beta2.toFixed(3)),
       precoMedio: avgP, qtdMedia: avgQ, receitaTotal: totalRev,
       comPromocao: withPromo, totalObs: rows.length,
-      rows: rows, prices, qtds
+      rows, prices, qtds, promos
     });
   });
   elasticityData.sort((a,b) => a.elasticidade - b.elasticidade);
@@ -366,14 +412,14 @@ function renderOverview() {
       <div class="card"><div class="card-title">Receita por produto</div><div class="chart-wrap" style="height:280px"><canvas id="chartRev"></canvas></div></div>
     </div>
     <div class="card"><div class="card-title">Produtos — resumo</div><div class="table-wrap"><table>
-      <thead><tr><th>Produto</th><th>Categoria</th><th>Elasticidade</th><th>Preço médio</th><th>Qtd média</th><th>Tipo</th></tr></thead>
+      <thead><tr><th>Produto</th><th>Categoria</th><th>Elast. preço</th><th>Uplift promo</th><th>Preço médio</th><th>Tipo</th></tr></thead>
       <tbody>${elasticityData.map(d=>`
         <tr>
           <td style="color:var(--text)">${d.produto}</td>
           <td>${d.categoria}</td>
           <td style="font-family:var(--mono);${d.elasticidade<-1?'color:var(--red2)':d.elasticidade>-1&&d.elasticidade<0?'color:var(--green2)':'color:var(--accent2)'}">${d.elasticidade.toFixed(2)}</td>
+          <td style="font-family:var(--mono);${d.uplift>0?'color:var(--amber2)':'color:var(--text3)'}">${d.uplift>0?'+':''}${d.uplift.toFixed(1)}%</td>
           <td>R$ ${d.precoMedio.toFixed(2)}</td>
-          <td>${d.qtdMedia.toFixed(0)}</td>
           <td><span class="badge ${getType(d.elasticidade)==='elastic'?'badge-elastic':getType(d.elasticidade)==='inelastic'?'badge-inelastic':'badge-unit'}">${getType(d.elasticidade)==='elastic'?'Elástico':getType(d.elasticidade)==='inelastic'?'Inelástico':'Unitário'}</span></td>
         </tr>`).join('')}
       </tbody></table></div></div>
@@ -486,23 +532,42 @@ function simulate() {
   const type = document.getElementById('simType').value;
 
   const newPrice = d.precoMedio * (1+delta);
-  const deltaQ = d.elasticidade * delta;
-  const newQtd = d.qtdMedia * (1+deltaQ);
-  const curRev = d.precoMedio * d.qtdMedia * weeks;
-  const newRev = newPrice * newQtd * weeks;
+
+  // Efeito preço puro: usa elasticidade limpa (β1)
+  const deltaQPrice = d.elasticidade * delta;
+
+  // Efeito promoção adicional: só entra quando o tipo for promoção
+  // O uplift é o ganho de volume que ocorre ALÉM do desconto (β2 isolado)
+  const isPromo = type === 'promo';
+  const upliftFactor = isPromo ? (Math.exp(d.beta2) - 1) : 0;
+
+  // Volume projetado = base × (1 + efeito_preço) × (1 + efeito_promo)
+  // Os dois efeitos são multiplicativos — cada um age independentemente
+  const newQtd = d.qtdMedia * (1 + deltaQPrice) * (1 + upliftFactor);
+  const deltaQ = (newQtd / d.qtdMedia - 1);
+
+  const curRev  = d.precoMedio * d.qtdMedia * weeks;
+  const newRev  = newPrice * newQtd * weeks;
   const revDiff = newRev - curRev;
 
   let verdict, vClass;
-  if(revDiff>0 && delta<0) { verdict='✓ Promoção agressiva — o ganho em volume supera a redução de preço. Receita total aumenta.'; vClass='go'; }
-  else if(revDiff>0 && delta>0) { verdict='✓ Aumento de preço favorável — a demanda é inelástica aqui. Receita sobe com baixo impacto em volume.'; vClass='go'; }
-  else if(revDiff<-curRev*0.05) { verdict='✗ Ação desfavorável — a variação projetada reduz receita total acima de 5%.'; vClass='stop'; }
-  else { verdict='⚠ Impacto neutro a moderado — monitore de perto o desempenho.'; vClass='caution'; }
+  if(revDiff>0 && delta<0 && isPromo) { verdict='✓ Promoção eficiente — o uplift de volume + efeito de preço superam o desconto. Receita cresce.'; vClass='go'; }
+  else if(revDiff>0 && delta<0)       { verdict='✓ Redução de preço favorável — ganho em volume supera queda de preço.'; vClass='go'; }
+  else if(revDiff>0 && delta>0)       { verdict='✓ Aumento de preço favorável — demanda inelástica, receita sobe.'; vClass='go'; }
+  else if(revDiff<-curRev*0.05)       { verdict='✗ Ação desfavorável — redução de receita acima de 5% projetada.'; vClass='stop'; }
+  else                                 { verdict='⚠ Impacto neutro a moderado — monitore de perto.'; vClass='caution'; }
+
+  const upliftLine = isPromo
+    ? `<div class="result-row"><span class="result-label">Uplift promocional (β2)</span><span class="result-val pos">+${(upliftFactor*100).toFixed(1)}% vol</span></div>`
+    : '';
 
   document.getElementById('simResult').innerHTML = `
     <div class="card-title">Resultado da simulação — ${prodName}</div>
     <div class="result-card">
       <div class="result-row"><span class="result-label">Preço atual</span><span class="result-val">R$ ${d.precoMedio.toFixed(2)}</span></div>
       <div class="result-row"><span class="result-label">Novo preço</span><span class="result-val ${delta>0?'neg':'pos'}">R$ ${newPrice.toFixed(2)}</span></div>
+      <div class="result-row"><span class="result-label">Elasticidade pura (β1)</span><span class="result-val" style="color:var(--text2)">${d.elasticidade.toFixed(2)}</span></div>
+      ${upliftLine}
       <div class="result-row"><span class="result-label">Qtd média atual</span><span class="result-val">${Math.round(d.qtdMedia)}/sem</span></div>
       <div class="result-row"><span class="result-label">Qtd projetada</span><span class="result-val ${deltaQ>0?'pos':'neg'}">${Math.round(newQtd)}/sem</span></div>
       <div class="result-row"><span class="result-label">Receita atual (${weeks}sem)</span><span class="result-val">R$ ${Math.round(curRev).toLocaleString('pt-BR')}</span></div>
@@ -523,7 +588,7 @@ async function sendChat() {
   input.value = '';
   appendMsg(msg, 'user');
   const typing = appendTyping();
-  const context = elasticityData.length ? `Contexto dos dados: ${JSON.stringify(elasticityData.map(d=>({produto:d.produto,categoria:d.categoria,elasticidade:d.elasticidade,precoMedio:d.precoMedio.toFixed(2),receitaTotal:Math.round(d.receitaTotal),comPromocao:d.comPromocao,totalObs:d.totalObs})))}` : 'Nenhum dado importado ainda.';
+  const context = elasticityData.length ? `Contexto dos dados (regressão múltipla log-log com dummy de promoção): ${JSON.stringify(elasticityData.map(d=>({produto:d.produto,categoria:d.categoria,elasticidade_pura:d.elasticidade,uplift_promocional_pct:d.uplift,precoMedio:d.precoMedio.toFixed(2),receitaTotal:Math.round(d.receitaTotal),semanas_com_promocao:d.comPromocao,total_observacoes:d.totalObs})))}. A elasticidade_pura é β1 (efeito do preço isolado). O uplift_promocional_pct é (e^β2−1)×100, ou seja, quanto % o volume sobe só por haver promoção independente do desconto.` : 'Nenhum dado importado ainda.';
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`Você é um especialista em elasticidade de preços e estratégia comercial. Responda em português, de forma direta e prática. Use os dados fornecidos para embasar suas respostas. ${context}`,messages:[{role:'user',content:msg}]})});
     const data = await resp.json();
