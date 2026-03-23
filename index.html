@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analisador de Elasticidade de Preços</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --surface2: #22222c;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --text2: #9a9991;
+    --text3: #5a5953;
+    --accent: #7c6dfa;
+    --accent2: #a99dff;
+    --green: #3db87a;
+    --green2: #6dd9a5;
+    --amber: #e09a30;
+    --amber2: #f5c060;
+    --red: #e2504a;
+    --red2: #f08080;
+    --teal: #2ab8a0;
+    --font: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .main { overflow-y: auto; }
+
+  /* Sidebar */
+  .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); padding: 0 8px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .logo span { color: var(--accent2); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(124,109,250,0.15); color: var(--accent2); }
+  .nav-icon { width: 16px; height: 16px; opacity: 0.7; }
+  .sidebar-section { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 16px 10px 6px; }
+  .upload-btn { margin-top: auto; background: rgba(124,109,250,0.2); border: 1px solid rgba(124,109,250,0.3); border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; color: var(--accent2); font-size: 12px; font-weight: 500; transition: all 0.15s; }
+  .upload-btn:hover { background: rgba(124,109,250,0.3); }
+  #fileInput { display: none; }
+
+  /* Pages */
+  .page { display: none; padding: 32px; }
+  .page.active { display: block; }
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-size: 22px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 16px; }
+
+  /* Metric cards */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--surface2); border-radius: 10px; padding: 16px; }
+  .metric-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .metric-value { font-size: 24px; font-weight: 300; letter-spacing: -0.03em; }
+  .metric-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .pos { color: var(--green2); } .neg { color: var(--red2); } .neu { color: var(--accent2); }
+
+  /* Upload area */
+  .upload-area { border: 1.5px dashed var(--border2); border-radius: 12px; padding: 48px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .upload-area:hover { border-color: var(--accent); background: rgba(124,109,250,0.05); }
+  .upload-icon { font-size: 32px; margin-bottom: 12px; }
+  .upload-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .upload-sub { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .template-link { color: var(--accent2); text-decoration: none; cursor: pointer; }
+  .template-link:hover { text-decoration: underline; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--surface2); padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .badge-elastic { background: rgba(61,184,122,0.15); color: var(--green2); }
+  .badge-inelastic { background: rgba(226,80,74,0.15); color: var(--red2); }
+  .badge-unit { background: rgba(124,109,250,0.15); color: var(--accent2); }
+  .badge-promo { background: rgba(224,154,48,0.15); color: var(--amber2); }
+
+  /* Chart containers */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* Simulator */
+  .sim-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+  .sim-controls { display: flex; flex-direction: column; gap: 14px; }
+  .field-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  select, input[type=text], input[type=number] {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 8px 12px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none;
+    appearance: none; -webkit-appearance: none;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  .range-val { font-family: var(--mono); font-size: 13px; color: var(--accent2); min-width: 44px; text-align: right; }
+  .sim-btn { background: var(--accent); border: none; border-radius: 8px; padding: 10px; color: white; font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .sim-btn:hover { background: var(--accent2); color: var(--bg); }
+  .result-card { background: var(--surface2); border-radius: 10px; padding: 20px; }
+  .result-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .result-row:last-child { border-bottom: none; }
+  .result-label { font-size: 12px; color: var(--text2); }
+  .result-val { font-size: 15px; font-weight: 500; font-family: var(--mono); }
+  .verdict { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+  .verdict.go { background: rgba(61,184,122,0.1); border: 1px solid rgba(61,184,122,0.25); color: var(--green2); }
+  .verdict.caution { background: rgba(224,154,48,0.1); border: 1px solid rgba(224,154,48,0.25); color: var(--amber2); }
+  .verdict.stop { background: rgba(226,80,74,0.1); border: 1px solid rgba(226,80,74,0.25); color: var(--red2); }
+
+  /* AI Chat */
+  .ai-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+  .chat-box { display: flex; flex-direction: column; height: 520px; }
+  .chat-msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+  .msg.ai { background: var(--surface2); color: var(--text); align-self: flex-start; }
+  .msg.user { background: rgba(124,109,250,0.2); color: var(--text); align-self: flex-end; border: 1px solid rgba(124,109,250,0.3); }
+  .chat-input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
+  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
+  .chat-input:focus { border-color: var(--accent); }
+  .send-btn { background: var(--accent); border: none; border-radius: 8px; width: 36px; cursor: pointer; color: white; font-size: 16px; transition: all 0.15s; }
+  .send-btn:hover { background: var(--accent2); color: var(--bg); }
+  .suggestions { display: flex; flex-direction: column; gap: 8px; }
+  .suggestion { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 12px; color: var(--text2); transition: all 0.15s; }
+  .suggestion:hover { border-color: var(--accent); color: var(--accent2); }
+  .typing { display: flex; gap: 4px; padding: 4px 0; }
+  .typing span { width: 6px; height: 6px; background: var(--text3); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  /* Status bar */
+  .status-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(61,184,122,0.08); border: 1px solid rgba(61,184,122,0.2); border-radius: 6px; font-size: 11px; color: var(--green2); margin-bottom: 20px; }
+  .status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+  .no-data { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .no-data-icon { font-size: 40px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<input type="file" id="fileInput" accept=".csv">
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">Price<span>IQ</span></div>
+    <div class="sidebar-section">Análise</div>
+    <div class="nav-item active" onclick="nav('overview')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="4" height="7" rx="1" fill="currentColor" opacity=".6"/><rect x="6" y="4" width="4" height="11" rx="1" fill="currentColor"/><rect x="11" y="1" width="4" height="14" rx="1" fill="currentColor" opacity=".6"/></svg>
+      Visão geral
+    </div>
+    <div class="nav-item" onclick="nav('elasticity')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M1 13 L4 8 L7 10 L10 4 L13 6 L15 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Elasticidade
+    </div>
+    <div class="nav-item" onclick="nav('simulator')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Simulador
+    </div>
+    <div class="sidebar-section">IA</div>
+    <div class="nav-item" onclick="nav('ai')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M8 5l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Consultar IA
+    </div>
+    <div class="upload-btn" onclick="document.getElementById('fileInput').click()">
+      ↑ Importar CSV
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Overview -->
+    <div id="page-overview" class="page active">
+      <div class="page-header">
+        <div class="page-title">Visão geral</div>
+        <div class="page-sub">Performance e elasticidade do seu portfólio</div>
+      </div>
+      <div id="overview-content">
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📊</div>
+          <div class="upload-title">Importe seu histórico de sell-out</div>
+          <div class="upload-sub">
+            Arraste ou clique para selecionar um arquivo CSV<br>
+            <span class="template-link" onclick="event.stopPropagation();downloadTemplate()">Baixar template de exemplo →</span>
+          </div>
+        </div>
+        <div style="margin-top: 24px;" class="card">
+          <div class="card-title">Formato esperado do CSV</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Coluna</th><th>Tipo</th><th>Exemplo</th><th>Descrição</th></tr></thead>
+              <tbody>
+                <tr><td>data</td><td>Data</td><td>2024-01-15</td><td>Data da venda (YYYY-MM-DD)</td></tr>
+                <tr><td>produto</td><td>Texto</td><td>Produto A</td><td>Nome ou SKU do produto</td></tr>
+                <tr><td>categoria</td><td>Texto</td><td>Bebidas</td><td>Categoria do produto</td></tr>
+                <tr><td>preco</td><td>Número</td><td>29.90</td><td>Preço de venda praticado</td></tr>
+                <tr><td>quantidade</td><td>Número</td><td>150</td><td>Unidades vendidas</td></tr>
+                <tr><td>promocao</td><td>Texto</td><td>Desconto 20%</td><td>Tipo de promoção (ou vazio)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Elasticity page -->
+    <div id="page-elasticity" class="page">
+      <div class="page-header">
+        <div class="page-title">Análise de elasticidade</div>
+        <div class="page-sub">Sensibilidade da demanda às variações de preço por produto</div>
+      </div>
+      <div id="elasticity-content"><div class="no-data"><div class="no-data-icon">📈</div><div>Importe um CSV para ver a análise</div></div></div>
+    </div>
+
+    <!-- Simulator page -->
+    <div id="page-simulator" class="page">
+      <div class="page-header">
+        <div class="page-title">Simulador de preço</div>
+        <div class="page-sub">Projete o impacto de mudanças de preço e promoções no seu resultado</div>
+      </div>
+      <div id="simulator-content"><div class="no-data"><div class="no-data-icon">🎛️</div><div>Importe um CSV para usar o simulador</div></div></div>
+    </div>
+
+    <!-- AI page -->
+    <div id="page-ai" class="page">
+      <div class="page-header">
+        <div class="page-title">Consultar IA</div>
+        <div class="page-sub">Pergunte sobre elasticidade, promoções e estratégia de preços</div>
+      </div>
+      <div class="ai-layout">
+        <div class="card" style="padding: 0;">
+          <div class="chat-box">
+            <div class="chat-msgs" id="chatMsgs">
+              <div class="msg ai">Olá! Sou seu assistente de precificação. Posso analisar elasticidade, simular cenários e recomendar estratégias. Importe seus dados ou faça uma pergunta!</div>
+            </div>
+            <div class="chat-input-row">
+              <input class="chat-input" id="chatInput" placeholder="Ex: Qual produto tem maior elasticidade?" onkeydown="if(event.key==='Enter')sendChat()">
+              <button class="send-btn" onclick="sendChat()">→</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Perguntas sugeridas</div>
+          <div class="suggestions">
+            <div class="suggestion" onclick="askSuggestion(this.innerText)">Qual produto tem maior elasticidade de preço?</div>
+            <div class="suggestion" onclick="askSuggestion(this.innerText)">Quais promoções geraram mais volume sem sacrificar margem?</div>
+            <div class="suggestion" onclick="askSuggestion(this.innerText)">Qual é o preço ótimo para maximizar receita?</div>
+            <div class="suggestion" onclick="askSuggestion(this.innerText)">Existe sazonalidade nas vendas por categoria?</div>
+            <div class="suggestion" onclick="askSuggestion(this.innerText)">Recomende uma estratégia de preço para o próximo mês</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let appData = [];
+let elasticityData = [];
+let charts = {};
+
+// Navigation
+function nav(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.currentTarget && event.currentTarget.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if(n.getAttribute('onclick')?.includes("'"+page+"'")) n.classList.add('active');
+  });
+  document.getElementById('page-'+page).classList.add('active');
+}
+
+// File upload
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true, dynamicTyping: true,
+    complete: function(results) {
+      appData = results.data;
+      processData();
+    }
+  });
+});
+
+function processData() {
+  if(!appData.length) return;
+  computeElasticity();
+  renderOverview();
+  renderElasticity();
+  renderSimulator();
+  nav('overview');
+}
+
+function computeElasticity() {
+  const byProduct = {};
+  appData.forEach(r => {
+    const prod = r.produto || r.product || r.sku || 'Desconhecido';
+    if(!byProduct[prod]) byProduct[prod] = [];
+    byProduct[prod].push(r);
+  });
+
+  elasticityData = [];
+  Object.entries(byProduct).forEach(([prod, rows]) => {
+    if(rows.length < 3) return;
+    const prices = rows.map(r => parseFloat(r.preco || r.price || r.preco_venda || 0));
+    const qtds = rows.map(r => parseFloat(r.quantidade || r.qty || r.volume || 0));
+    const cat = rows[0].categoria || rows[0].category || '-';
+    const withPromo = rows.filter(r => r.promocao || r.promo || r.desconto).length;
+
+    const avgP = prices.reduce((a,b)=>a+b,0)/prices.length;
+    const avgQ = qtds.reduce((a,b)=>a+b,0)/qtds.length;
+    const totalRev = prices.reduce((a,b,i)=>a+b*qtds[i],0);
+
+    // Linear regression for elasticity
+    let sumXY=0, sumX2=0;
+    const lnP = prices.map(p=>Math.log(Math.max(p,0.01)));
+    const lnQ = qtds.map(q=>Math.log(Math.max(q,0.01)));
+    const mP = lnP.reduce((a,b)=>a+b,0)/lnP.length;
+    const mQ = lnQ.reduce((a,b)=>a+b,0)/lnQ.length;
+    lnP.forEach((x,i)=>{ sumXY+=(x-mP)*(lnQ[i]-mQ); sumX2+=(x-mP)**2; });
+    const elast = sumX2>0.001 ? sumXY/sumX2 : 0;
+
+    elasticityData.push({
+      produto: prod, categoria: cat, elasticidade: parseFloat(elast.toFixed(2)),
+      precoMedio: avgP, qtdMedia: avgQ, receitaTotal: totalRev,
+      comPromocao: withPromo, totalObs: rows.length,
+      rows: rows, prices, qtds
+    });
+  });
+  elasticityData.sort((a,b) => a.elasticidade - b.elasticidade);
+}
+
+function getType(e) {
+  if(e < -1) return 'elastic';
+  if(e > -1 && e < 0) return 'inelastic';
+  return 'unit';
+}
+
+function renderOverview() {
+  const totalRev = elasticityData.reduce((a,b)=>a+b.receitaTotal,0);
+  const avgElast = elasticityData.reduce((a,b)=>a+b.elasticidade,0)/elasticityData.length;
+  const elastic = elasticityData.filter(d=>d.elasticidade < -1).length;
+  const totalObs = appData.length;
+
+  const content = document.getElementById('overview-content');
+  content.innerHTML = `
+    <div class="status-bar"><div class="status-dot"></div> ${totalObs} registros carregados · ${elasticityData.length} produtos analisados</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Receita total</div><div class="metric-value neu">R$ ${(totalRev/1000).toFixed(0)}k</div><div class="metric-sub">período completo</div></div>
+      <div class="metric"><div class="metric-label">Elasticidade média</div><div class="metric-value ${avgElast<-1?'neg':'pos'}">${avgElast.toFixed(2)}</div><div class="metric-sub">${avgElast<-1?'demanda elástica':'demanda inelástica'}</div></div>
+      <div class="metric"><div class="metric-label">Produtos elásticos</div><div class="metric-value neg">${elastic}</div><div class="metric-sub">de ${elasticityData.length} SKUs</div></div>
+      <div class="metric"><div class="metric-label">Registros c/ promoção</div><div class="metric-value neu">${appData.filter(r=>r.promocao||r.promo).length}</div><div class="metric-sub">${Math.round(appData.filter(r=>r.promocao||r.promo).length/totalObs*100)}% do total</div></div>
+    </div>
+    <div class="chart-grid">
+      <div class="card"><div class="card-title">Elasticidade por produto</div><div class="chart-wrap" style="height:280px"><canvas id="chartElast"></canvas></div></div>
+      <div class="card"><div class="card-title">Receita por produto</div><div class="chart-wrap" style="height:280px"><canvas id="chartRev"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-title">Produtos — resumo</div><div class="table-wrap"><table>
+      <thead><tr><th>Produto</th><th>Categoria</th><th>Elasticidade</th><th>Preço médio</th><th>Qtd média</th><th>Tipo</th></tr></thead>
+      <tbody>${elasticityData.map(d=>`
+        <tr>
+          <td style="color:var(--text)">${d.produto}</td>
+          <td>${d.categoria}</td>
+          <td style="font-family:var(--mono);${d.elasticidade<-1?'color:var(--red2)':d.elasticidade>-1&&d.elasticidade<0?'color:var(--green2)':'color:var(--accent2)'}">${d.elasticidade.toFixed(2)}</td>
+          <td>R$ ${d.precoMedio.toFixed(2)}</td>
+          <td>${d.qtdMedia.toFixed(0)}</td>
+          <td><span class="badge ${getType(d.elasticidade)==='elastic'?'badge-elastic':getType(d.elasticidade)==='inelastic'?'badge-inelastic':'badge-unit'}">${getType(d.elasticidade)==='elastic'?'Elástico':getType(d.elasticidade)==='inelastic'?'Inelástico':'Unitário'}</span></td>
+        </tr>`).join('')}
+      </tbody></table></div></div>
+  `;
+  setTimeout(()=>{
+    const labels = elasticityData.map(d=>d.produto.length>12?d.produto.slice(0,12)+'...':d.produto);
+    const colors = elasticityData.map(d=>d.elasticidade<-1?'#e2504a':d.elasticidade>-1&&d.elasticidade<0?'#3db87a':'#7c6dfa');
+    if(charts.elast) charts.elast.destroy();
+    charts.elast = new Chart(document.getElementById('chartElast'),{type:'bar',data:{labels,datasets:[{data:elasticityData.map(d=>d.elasticidade),backgroundColor:colors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11}}},x:{grid:{display:false},ticks:{color:'#5a5953',font:{size:11}}}}}});
+    if(charts.rev) charts.rev.destroy();
+    charts.rev = new Chart(document.getElementById('chartRev'),{type:'bar',data:{labels,datasets:[{data:elasticityData.map(d=>d.receitaTotal),backgroundColor:'rgba(124,109,250,0.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>'R$'+Math.round(v/1000)+'k'}},x:{grid:{display:false},ticks:{color:'#5a5953',font:{size:11}}}}}});
+  },100);
+}
+
+function renderElasticity() {
+  const content = document.getElementById('elasticity-content');
+  if(!elasticityData.length){content.innerHTML='<div class="no-data"><div class="no-data-icon">📈</div><div>Importe um CSV para ver a análise</div></div>';return;}
+  content.innerHTML = `
+    <div class="chart-grid">
+      <div class="card" style="grid-column:1/-1"><div class="card-title">Curva preço × demanda por produto</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">${elasticityData.map((d,i)=>`<button onclick="showCurve(${i})" id="curveBtn${i}" style="background:${i===0?'var(--accent)':'var(--surface2)'};border:1px solid var(--border2);border-radius:6px;padding:5px 12px;color:${i===0?'white':'var(--text2)'};cursor:pointer;font-size:12px;font-family:var(--font)">${d.produto}</button>`).join('')}</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="chartCurve"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="card"><div class="card-title">Impacto das promoções no volume</div><div class="chart-wrap" style="height:240px"><canvas id="chartPromo"></canvas></div></div>
+      <div class="card"><div class="card-title">Distribuição da elasticidade</div><div class="chart-wrap" style="height:240px"><canvas id="chartDist"></canvas></div></div>
+    </div>
+  `;
+  setTimeout(()=>{
+    showCurve(0);
+    // Promo chart
+    const promoData = elasticityData.map(d=>{
+      const cp = d.rows.filter(r=>r.promocao||r.promo);
+      const sp = d.rows.filter(r=>!r.promocao&&!r.promo);
+      const avgCp = cp.length ? cp.reduce((a,r)=>a+(r.quantidade||r.qty||0),0)/cp.length : 0;
+      const avgSp = sp.length ? sp.reduce((a,r)=>a+(r.quantidade||r.qty||0),0)/sp.length : 1;
+      return ((avgCp/avgSp-1)*100).toFixed(0);
+    });
+    if(charts.promo) charts.promo.destroy();
+    charts.promo = new Chart(document.getElementById('chartPromo'),{type:'bar',data:{labels:elasticityData.map(d=>d.produto.length>10?d.produto.slice(0,10)+'...':d.produto),datasets:[{label:'Δ% volume c/ promoção',data:promoData,backgroundColor:promoData.map(v=>v>0?'rgba(61,184,122,0.6)':'rgba(226,80,74,0.6)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>v+'%'}},x:{grid:{display:false},ticks:{color:'#5a5953',font:{size:11}}}}}});
+    // Distribution
+    const buckets = {Elástico:0,Unitário:0,Inelástico:0};
+    elasticityData.forEach(d=>{if(d.elasticidade<-1)buckets.Elástico++;else if(d.elasticidade<0)buckets.Inelástico++;else buckets.Unitário++;});
+    if(charts.dist) charts.dist.destroy();
+    charts.dist = new Chart(document.getElementById('chartDist'),{type:'doughnut',data:{labels:Object.keys(buckets),datasets:[{data:Object.values(buckets),backgroundColor:['#e2504a','#7c6dfa','#3db87a'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}});
+  },100);
+}
+
+function showCurve(idx) {
+  document.querySelectorAll('[id^=curveBtn]').forEach((b,i)=>{b.style.background=i===idx?'var(--accent)':'var(--surface2)';b.style.color=i===idx?'white':'var(--text2)';});
+  const d = elasticityData[idx];
+  if(!d) return;
+  const pts = d.prices.map((p,i)=>({x:p,y:d.qtds[i]})).sort((a,b)=>a.x-b.x);
+  if(charts.curve) charts.curve.destroy();
+  charts.curve = new Chart(document.getElementById('chartCurve'),{type:'scatter',data:{datasets:[{label:'Observações',data:pts,backgroundColor:'rgba(124,109,250,0.6)',pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Preço: R$${c.parsed.x.toFixed(2)} | Qtd: ${c.parsed.y.toFixed(0)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>'R$'+v.toFixed(2)},title:{display:true,text:'Preço',color:'#5a5953',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11}},title:{display:true,text:'Volume vendido',color:'#5a5953',font:{size:11}}}}}});
+}
+
+function renderSimulator() {
+  const content = document.getElementById('simulator-content');
+  if(!elasticityData.length){content.innerHTML='<div class="no-data"><div class="no-data-icon">🎛️</div><div>Importe um CSV para usar o simulador</div></div>';return;}
+  content.innerHTML = `
+    <div class="sim-grid">
+      <div class="card sim-controls">
+        <div class="card-title">Parâmetros da simulação</div>
+        <div>
+          <div class="field-label">Produto</div>
+          <select id="simProd" onchange="simulate()">${elasticityData.map(d=>`<option value="${d.produto}">${d.produto}</option>`).join('')}</select>
+        </div>
+        <div>
+          <div class="field-label">Variação de preço</div>
+          <div class="range-row">
+            <input type="range" min="-40" max="40" value="0" step="1" id="simDelta" oninput="document.getElementById('simDeltaVal').innerText=this.value+'%';simulate()">
+            <span class="range-val" id="simDeltaVal">0%</span>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Tipo de ação</div>
+          <select id="simType" onchange="simulate()">
+            <option value="price">Ajuste de preço regular</option>
+            <option value="promo">Promoção temporária</option>
+            <option value="permanent">Reposicionamento permanente</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Duração (semanas)</div>
+          <div class="range-row">
+            <input type="range" min="1" max="12" value="4" step="1" id="simWeeks" oninput="document.getElementById('simWeeksVal').innerText=this.value+'sem';simulate()">
+            <span class="range-val" id="simWeeksVal">4sem</span>
+          </div>
+        </div>
+        <button class="sim-btn" onclick="simulate()">Simular →</button>
+      </div>
+      <div>
+        <div id="simResult" class="card"></div>
+        <div style="margin-top:16px;"><div class="card"><div class="card-title">Receita simulada vs atual</div><div class="chart-wrap" style="height:220px"><canvas id="chartSim"></canvas></div></div></div>
+      </div>
+    </div>
+  `;
+  setTimeout(simulate, 100);
+}
+
+function simulate() {
+  const prodName = document.getElementById('simProd')?.value;
+  if(!prodName) return;
+  const d = elasticityData.find(e=>e.produto===prodName);
+  if(!d) return;
+  const delta = parseFloat(document.getElementById('simDelta').value)/100;
+  const weeks = parseInt(document.getElementById('simWeeks').value);
+  const type = document.getElementById('simType').value;
+
+  const newPrice = d.precoMedio * (1+delta);
+  const deltaQ = d.elasticidade * delta;
+  const newQtd = d.qtdMedia * (1+deltaQ);
+  const curRev = d.precoMedio * d.qtdMedia * weeks;
+  const newRev = newPrice * newQtd * weeks;
+  const revDiff = newRev - curRev;
+
+  let verdict, vClass;
+  if(revDiff>0 && delta<0) { verdict='✓ Promoção agressiva — o ganho em volume supera a redução de preço. Receita total aumenta.'; vClass='go'; }
+  else if(revDiff>0 && delta>0) { verdict='✓ Aumento de preço favorável — a demanda é inelástica aqui. Receita sobe com baixo impacto em volume.'; vClass='go'; }
+  else if(revDiff<-curRev*0.05) { verdict='✗ Ação desfavorável — a variação projetada reduz receita total acima de 5%.'; vClass='stop'; }
+  else { verdict='⚠ Impacto neutro a moderado — monitore de perto o desempenho.'; vClass='caution'; }
+
+  document.getElementById('simResult').innerHTML = `
+    <div class="card-title">Resultado da simulação — ${prodName}</div>
+    <div class="result-card">
+      <div class="result-row"><span class="result-label">Preço atual</span><span class="result-val">R$ ${d.precoMedio.toFixed(2)}</span></div>
+      <div class="result-row"><span class="result-label">Novo preço</span><span class="result-val ${delta>0?'neg':'pos'}">R$ ${newPrice.toFixed(2)}</span></div>
+      <div class="result-row"><span class="result-label">Qtd média atual</span><span class="result-val">${Math.round(d.qtdMedia)}/sem</span></div>
+      <div class="result-row"><span class="result-label">Qtd projetada</span><span class="result-val ${deltaQ>0?'pos':'neg'}">${Math.round(newQtd)}/sem</span></div>
+      <div class="result-row"><span class="result-label">Receita atual (${weeks}sem)</span><span class="result-val">R$ ${Math.round(curRev).toLocaleString('pt-BR')}</span></div>
+      <div class="result-row"><span class="result-label">Receita projetada</span><span class="result-val ${revDiff>=0?'pos':'neg'}">R$ ${Math.round(newRev).toLocaleString('pt-BR')}</span></div>
+      <div class="result-row"><span class="result-label">Δ Receita</span><span class="result-val ${revDiff>=0?'pos':'neg'}">${revDiff>=0?'+':''}R$ ${Math.round(revDiff).toLocaleString('pt-BR')}</span></div>
+    </div>
+    <div class="verdict ${vClass}">${verdict}</div>
+  `;
+  if(charts.sim) charts.sim.destroy();
+  charts.sim = new Chart(document.getElementById('chartSim'),{type:'bar',data:{labels:['Receita atual','Receita projetada'],datasets:[{data:[Math.round(curRev),Math.round(newRev)],backgroundColor:[revDiff>=0?'rgba(61,184,122,0.5)':'rgba(226,80,74,0.5)',revDiff>=0?'rgba(61,184,122,0.8)':'rgba(226,80,74,0.8)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>'R$'+Math.round(v/1000)+'k'}},y:{grid:{display:false},ticks:{color:'#9a9991',font:{size:12}}}}}});
+}
+
+// AI Chat
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  appendMsg(msg, 'user');
+  const typing = appendTyping();
+  const context = elasticityData.length ? `Contexto dos dados: ${JSON.stringify(elasticityData.map(d=>({produto:d.produto,categoria:d.categoria,elasticidade:d.elasticidade,precoMedio:d.precoMedio.toFixed(2),receitaTotal:Math.round(d.receitaTotal),comPromocao:d.comPromocao,totalObs:d.totalObs})))}` : 'Nenhum dado importado ainda.';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`Você é um especialista em elasticidade de preços e estratégia comercial. Responda em português, de forma direta e prática. Use os dados fornecidos para embasar suas respostas. ${context}`,messages:[{role:'user',content:msg}]})});
+    const data = await resp.json();
+    typing.remove();
+    appendMsg(data.content?.[0]?.text || 'Não consegui processar.', 'ai');
+  } catch(e) {
+    typing.remove();
+    appendMsg('Erro ao conectar com a IA. Verifique sua conexão.', 'ai');
+  }
+}
+
+function askSuggestion(text) { document.getElementById('chatInput').value=text; sendChat(); }
+
+function appendMsg(text, role) {
+  const msgs = document.getElementById('chatMsgs');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerText = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+function appendTyping() {
+  const msgs = document.getElementById('chatMsgs');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// Template download
+function downloadTemplate() {
+  const csv = `data,produto,categoria,preco,quantidade,promocao
+2024-01-01,Produto A,Bebidas,29.90,120,
+2024-01-08,Produto A,Bebidas,24.90,185,Desconto 17%
+2024-01-15,Produto A,Bebidas,29.90,115,
+2024-01-22,Produto A,Bebidas,32.90,98,
+2024-02-01,Produto B,Snacks,12.50,300,
+2024-02-08,Produto B,Snacks,9.90,420,Leve 2 Pague 1
+2024-02-15,Produto B,Snacks,12.50,290,
+2024-02-22,Produto B,Snacks,14.90,240,
+2024-03-01,Produto C,Laticínios,8.90,500,
+2024-03-08,Produto C,Laticínios,7.90,540,Desconto 11%
+2024-03-15,Produto C,Laticínios,8.90,510,
+2024-03-22,Produto C,Laticínios,9.90,480,`;
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'template_sellout.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
