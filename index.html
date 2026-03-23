@@ -654,12 +654,12 @@ function renderComparator() {
           <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Unidades grátis embutidas. Preço na gôndola permanece cheio.</div>
           <div class="field-label">Unidades que o cliente leva</div>
           <div class="range-row">
-            <input type="range" min="2" max="10" value="3" step="1" id="compLeva" oninput="document.getElementById('compLevaVal').innerText=this.value;compare()">
+            <input type="range" min="2" max="12" value="3" step="1" id="compLeva" oninput="document.getElementById('compLevaVal').innerText=this.value;compare()">
             <span class="range-val" id="compLevaVal">3</span>
           </div>
           <div class="field-label" style="margin-top:10px;">Unidades que o cliente paga</div>
           <div class="range-row">
-            <input type="range" min="1" max="5" value="2" step="1" id="compPaga" oninput="document.getElementById('compPagaVal').innerText=this.value;compare()">
+            <input type="range" min="1" max="11" value="2" step="1" id="compPaga" oninput="document.getElementById('compPagaVal').innerText=this.value;compare()">
             <span class="range-val" id="compPagaVal">2</span>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-top:6px;" id="compBundleDesc">Desconto efetivo: 33,3% por unidade</div>
