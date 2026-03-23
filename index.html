@@ -119,6 +119,26 @@
   .verdict.caution { background: rgba(224,154,48,0.1); border: 1px solid rgba(224,154,48,0.25); color: var(--amber2); }
   .verdict.stop { background: rgba(226,80,74,0.1); border: 1px solid rgba(226,80,74,0.25); color: var(--red2); }
 
+  /* Comparator */
+  .comp-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+  .comp-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .comp-card { border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+  .comp-card.direct { background: rgba(124,109,250,0.06); border-color: rgba(124,109,250,0.25); }
+  .comp-card.bundle { background: rgba(61,184,122,0.06); border-color: rgba(61,184,122,0.25); }
+  .comp-card-title { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .comp-card.direct .comp-card-title { color: var(--accent2); }
+  .comp-card.bundle .comp-card-title { color: var(--green2); }
+  .comp-metric { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .comp-metric:last-child { border-bottom: none; }
+  .comp-metric-label { font-size: 12px; color: var(--text2); }
+  .comp-metric-val { font-size: 14px; font-weight: 500; font-family: var(--mono); }
+  .winner-banner { margin-top: 16px; padding: 14px 16px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+  .winner-banner.direct-wins { background: rgba(124,109,250,0.1); border: 1px solid rgba(124,109,250,0.3); color: var(--accent2); }
+  .winner-banner.bundle-wins { background: rgba(61,184,122,0.1); border: 1px solid rgba(61,184,122,0.3); color: var(--green2); }
+  .winner-banner.tie { background: rgba(224,154,48,0.1); border: 1px solid rgba(224,154,48,0.3); color: var(--amber2); }
+  .tipping-box { margin-top: 14px; background: var(--surface2); border-radius: 10px; padding: 14px 16px; font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .tipping-box strong { color: var(--text); font-weight: 500; }
+
   /* AI Chat */
   .ai-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
   .chat-box { display: flex; flex-direction: column; height: 520px; }
@@ -165,6 +185,10 @@
     <div class="nav-item" onclick="nav('simulator')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       Simulador
+    </div>
+    <div class="nav-item" onclick="nav('comparator')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="6" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="3" width="6" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4 7h2M10 7h2M4 9h2M10 9h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Comparador
     </div>
     <div class="sidebar-section">IA</div>
     <div class="nav-item" onclick="nav('ai')">
@@ -228,6 +252,15 @@
         <div class="page-sub">Projete o impacto de mudanças de preço e promoções no seu resultado</div>
       </div>
       <div id="simulator-content"><div class="no-data"><div class="no-data-icon">🎛️</div><div>Importe um CSV para usar o simulador</div></div></div>
+    </div>
+
+    <!-- Comparator page -->
+    <div id="page-comparator" class="page">
+      <div class="page-header">
+        <div class="page-title">Comparador de mecânicas</div>
+        <div class="page-sub">Desconto direto vs leve e pague — qual gera mais resultado para o seu perfil de clientes?</div>
+      </div>
+      <div id="comparator-content"><div class="no-data"><div class="no-data-icon">⚖️</div><div>Importe um CSV para usar o comparador</div></div></div>
     </div>
 
     <!-- AI page -->
@@ -298,6 +331,7 @@ function processData() {
   renderOverview();
   renderElasticity();
   renderSimulator();
+  renderComparator();
   nav('overview');
 }
 
@@ -578,6 +612,207 @@ function simulate() {
   `;
   if(charts.sim) charts.sim.destroy();
   charts.sim = new Chart(document.getElementById('chartSim'),{type:'bar',data:{labels:['Receita atual','Receita projetada'],datasets:[{data:[Math.round(curRev),Math.round(newRev)],backgroundColor:[revDiff>=0?'rgba(61,184,122,0.5)':'rgba(226,80,74,0.5)',revDiff>=0?'rgba(61,184,122,0.8)':'rgba(226,80,74,0.8)'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>'R$'+Math.round(v/1000)+'k'}},y:{grid:{display:false},ticks:{color:'#9a9991',font:{size:12}}}}}});
+}
+
+// Comparator
+function renderComparator() {
+  const content = document.getElementById('comparator-content');
+  if(!elasticityData.length){content.innerHTML='<div class="no-data"><div class="no-data-icon">⚖️</div><div>Importe um CSV para usar o comparador</div></div>';return;}
+  content.innerHTML = `
+    <div class="comp-layout">
+      <div class="card sim-controls">
+        <div class="card-title">Parâmetros</div>
+        <div>
+          <div class="field-label">Produto</div>
+          <select id="compProd" onchange="compare()">${elasticityData.map(d=>`<option value="${d.produto}">${d.produto}</option>`).join('')}</select>
+        </div>
+        <div>
+          <div class="field-label">Desconto direto</div>
+          <div class="range-row">
+            <input type="range" min="5" max="40" value="15" step="1" id="compDirect" oninput="document.getElementById('compDirectVal').innerText=this.value+'%';compare()">
+            <span class="range-val" id="compDirectVal">15%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Aplicado a 100% dos compradores</div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;">
+          <div class="field-label">Desconto na 2ª unidade</div>
+          <div class="range-row">
+            <input type="range" min="10" max="60" value="30" step="1" id="compBundle" oninput="document.getElementById('compBundleVal').innerText=this.value+'%';compare()">
+            <span class="range-val" id="compBundleVal">30%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Aplicado só à 2ª unidade</div>
+        </div>
+        <div>
+          <div class="field-label">% clientes que compram 2+ unidades</div>
+          <div class="range-row">
+            <input type="range" min="5" max="80" value="35" step="1" id="compMulti" oninput="document.getElementById('compMultiVal').innerText=this.value+'%';compare()">
+            <span class="range-val" id="compMultiVal">35%</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Estimativa do seu perfil de clientes</div>
+        </div>
+        <div>
+          <div class="field-label">Duração (semanas)</div>
+          <div class="range-row">
+            <input type="range" min="1" max="12" value="4" step="1" id="compWeeks" oninput="document.getElementById('compWeeksVal').innerText=this.value+'sem';compare()">
+            <span class="range-val" id="compWeeksVal">4sem</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="comp-panels" id="compPanels"></div>
+        <div style="margin-top:16px;" class="card">
+          <div class="card-title">Receita projetada por mecânica</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartComp"></canvas></div>
+        </div>
+        <div style="margin-top:16px;" class="card">
+          <div class="card-title">Ponto de virada — % de clientes multi-unidade</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">A partir de qual percentual de clientes multi-unidade o leve e pague supera o desconto direto?</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartTipping"></canvas></div>
+        </div>
+      </div>
+    </div>
+  `;
+  setTimeout(compare, 100);
+}
+
+function compare() {
+  const prodName = document.getElementById('compProd')?.value;
+  if(!prodName) return;
+  const d = elasticityData.find(e=>e.produto===prodName);
+  if(!d) return;
+
+  const directPct   = parseFloat(document.getElementById('compDirect').value) / 100;
+  const bundlePct   = parseFloat(document.getElementById('compBundle').value) / 100;
+  const multiShare  = parseFloat(document.getElementById('compMulti').value) / 100;
+  const weeks       = parseInt(document.getElementById('compWeeks').value);
+
+  const basePrice = d.precoMedio;
+  const baseQtd   = d.qtdMedia;
+  const uplift    = Math.exp(d.beta2) - 1; // uplift promocional isolado
+
+  // ── MECÂNICA A: Desconto direto ──────────────────────────────────────────
+  // Preço cai directPct para todos. Volume reage pela elasticidade pura (β1)
+  // mais uplift promocional (β2) pois há uma promoção ativa.
+  const priceA   = basePrice * (1 - directPct);
+  const deltaQA  = d.elasticidade * (-directPct) + uplift;
+  const qtdA     = baseQtd * (1 + deltaQA);
+  const revA     = priceA * qtdA * weeks;
+  // Custo do desconto = desconto por unidade × total unidades vendidas
+  const discountCostA = basePrice * directPct * qtdA * weeks;
+
+  // ── MECÂNICA B: Leve 2 Pague 1+desconto2 ────────────────────────────────
+  // Clientes single (1-multiShare): pagam preço cheio, sem estímulo de desconto.
+  //   Volume deste grupo não muda pelo preço (preço na tag é cheio).
+  //   Mas ainda recebem o uplift de visibilidade da promoção.
+  // Clientes multi (multiShare): compram 2 unidades.
+  //   Preço efetivo por unidade = (1 + (1-bundlePct)) / 2 × preço base
+  //   Volume total deste grupo = 2× o que comprariam normalmente, ajustado pela elasticidade.
+
+  const priceSingle = basePrice;
+  const priceMultiEffective = basePrice * (1 - bundlePct / 2); // desconto dividido pelas 2 unidades
+
+  // Grupo single: quantidade base × (1 - multiShare) × (1 + uplift promocional)
+  const qtdSingle = baseQtd * (1 - multiShare) * (1 + uplift);
+
+  // Grupo multi: cada cliente multi compra 2 unidades
+  // Efeito preço do desconto efetivo sobre o grupo multi
+  const effectiveDiscountMulti = bundlePct / 2; // desconto efetivo por unidade para quem leva 2
+  const deltaQMulti = d.elasticidade * (-effectiveDiscountMulti) + uplift;
+  // × 2 porque cada comprador multi leva 2 unidades
+  const qtdMulti = baseQtd * multiShare * (1 + deltaQMulti) * 2;
+
+  const qtdB   = qtdSingle + qtdMulti;
+  // Receita: grupo single paga cheio, grupo multi paga preço efetivo por unidade
+  const revB   = ((qtdSingle * priceSingle) + (qtdMulti * priceMultiEffective)) * weeks;
+  // Custo do desconto = desconto real aplicado (só na 2ª unidade de cada par multi)
+  const discountCostB = basePrice * bundlePct * (qtdMulti / 2) * weeks;
+
+  // Baseline sem promoção
+  const revBase = basePrice * baseQtd * weeks;
+
+  // Incremento líquido de receita vs baseline
+  const incrA = revA - revBase;
+  const incrB = revB - revBase;
+
+  // ── Ponto de virada: qual multiShare faz B = A ───────────────────────────
+  // Varia multiShare de 0 a 100% e calcula revB para construir o gráfico
+  const tippingLabels = [];
+  const tippingA = [];
+  const tippingB = [];
+  let tippingPoint = null;
+  for(let ms = 0; ms <= 1; ms += 0.05) {
+    const qS = baseQtd * (1-ms) * (1+uplift);
+    const qM = baseQtd * ms * (1 + d.elasticidade*(-bundlePct/2) + uplift) * 2;
+    const rB = ((qS*priceSingle) + (qM*priceMultiEffective)) * weeks;
+    tippingLabels.push(Math.round(ms*100)+'%');
+    tippingA.push(Math.round(revA));
+    tippingB.push(Math.round(rB));
+    if(tippingPoint === null && rB >= revA) tippingPoint = Math.round(ms*100);
+  }
+
+  // ── Render panels ────────────────────────────────────────────────────────
+  const winnerClass = incrA > incrB ? 'direct-wins' : incrB > incrA ? 'bundle-wins' : 'tie';
+  const winnerText  = incrA > incrB
+    ? `O desconto direto gera R$ ${Math.round(Math.abs(incrA-incrB)).toLocaleString('pt-BR')} a mais de incremento de receita neste cenário. Com ${Math.round(multiShare*100)}% de clientes multi-unidade, o leve e pague ainda não compensa.`
+    : incrB > incrA
+    ? `O leve e pague gera R$ ${Math.round(Math.abs(incrB-incrA)).toLocaleString('pt-BR')} a mais de incremento de receita. Com ${Math.round(multiShare*100)}% de clientes comprando 2+ unidades, a mecânica de bundle se paga.`
+    : 'As duas mecânicas geram resultado equivalente neste cenário.';
+
+  const tippingMsg = tippingPoint !== null
+    ? `O leve e pague supera o desconto direto quando <strong>${tippingPoint}%</strong> ou mais dos clientes levam 2+ unidades. Seu cenário atual está em <strong>${Math.round(multiShare*100)}%</strong>.`
+    : `Com os descontos configurados, o desconto direto supera o leve e pague em todos os cenários de mix de clientes.`;
+
+  document.getElementById('compPanels').innerHTML = `
+    <div class="comp-card direct">
+      <div class="comp-card-title">Desconto direto ${Math.round(directPct*100)}%</div>
+      <div class="comp-metric"><span class="comp-metric-label">Preço praticado</span><span class="comp-metric-val" style="color:var(--accent2)">R$ ${priceA.toFixed(2)}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Volume projetado/sem</span><span class="comp-metric-val">${Math.round(qtdA/weeks)}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Receita total (${weeks}sem)</span><span class="comp-metric-val">R$ ${Math.round(revA).toLocaleString('pt-BR')}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Custo do desconto</span><span class="comp-metric-val neg">-R$ ${Math.round(discountCostA).toLocaleString('pt-BR')}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Incremento vs sem promo</span><span class="comp-metric-val ${incrA>=0?'pos':'neg'}">${incrA>=0?'+':''}R$ ${Math.round(incrA).toLocaleString('pt-BR')}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Desconto efetivo médio</span><span class="comp-metric-val">${Math.round(directPct*100)}%</span></div>
+    </div>
+    <div class="comp-card bundle">
+      <div class="comp-card-title">Leve 2 — ${Math.round(bundlePct*100)}% na 2ª unidade</div>
+      <div class="comp-metric"><span class="comp-metric-label">Preço efetivo (quem leva 2)</span><span class="comp-metric-val" style="color:var(--green2)">R$ ${priceMultiEffective.toFixed(2)}/un</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Volume projetado/sem</span><span class="comp-metric-val">${Math.round(qtdB/weeks)}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Receita total (${weeks}sem)</span><span class="comp-metric-val">R$ ${Math.round(revB).toLocaleString('pt-BR')}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Custo do desconto</span><span class="comp-metric-val neg">-R$ ${Math.round(discountCostB).toLocaleString('pt-BR')}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Incremento vs sem promo</span><span class="comp-metric-val ${incrB>=0?'pos':'neg'}">${incrB>=0?'+':''}R$ ${Math.round(incrB).toLocaleString('pt-BR')}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Desconto efetivo médio</span><span class="comp-metric-val">${(bundlePct/2*multiShare*100).toFixed(1)}%</span></div>
+    </div>
+  `;
+
+  document.getElementById('compPanels').insertAdjacentHTML('beforeend',`
+    <div style="grid-column:1/-1">
+      <div class="winner-banner ${winnerClass}">${incrA>incrB?'↑ Desconto direto vence':incrB>incrA?'↑ Leve e pague vence':'= Empate técnico'} — ${winnerText}</div>
+      <div class="tipping-box">${tippingMsg}</div>
+    </div>
+  `);
+
+  // Charts
+  if(charts.comp) charts.comp.destroy();
+  charts.comp = new Chart(document.getElementById('chartComp'),{
+    type:'bar',
+    data:{
+      labels:['Sem promoção','Desconto direto '+Math.round(directPct*100)+'%','Leve 2 — '+Math.round(bundlePct*100)+'% na 2ª un'],
+      datasets:[{data:[Math.round(revBase),Math.round(revA),Math.round(revB)],backgroundColor:['rgba(90,89,83,0.4)','rgba(124,109,250,0.7)','rgba(61,184,122,0.7)'],borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>'R$'+Math.round(v/1000)+'k'}},x:{grid:{display:false},ticks:{color:'#9a9991',font:{size:11}}}}}
+  });
+
+  if(charts.tipping) charts.tipping.destroy();
+  charts.tipping = new Chart(document.getElementById('chartTipping'),{
+    type:'line',
+    data:{
+      labels:tippingLabels,
+      datasets:[
+        {label:'Desconto direto',data:tippingA,borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2,pointRadius:0,fill:false},
+        {label:'Leve e pague',data:tippingB,borderColor:'#3db87a',backgroundColor:'rgba(61,184,122,0.08)',borderWidth:2,pointRadius:0,fill:false}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: R$${Math.round(c.parsed.y/1000)}k`}}},scales:{y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a5953',font:{size:11},callback:v=>'R$'+Math.round(v/1000)+'k'}},x:{grid:{display:false},ticks:{color:'#5a5953',font:{size:11}}}}}
+  });
 }
 
 // AI Chat
