@@ -62,6 +62,11 @@ Exportou dados novos do seu sistema? Importe o CSV atualizado e todos os cálcul
 
 ---
 
+**IMPORTANTE**
+
+Essa aplicação roda localmente no seu navegador, dessa forma, **nenhum dado fica salvo ao sair da página**. Com isso, seus dados de venda e estratégias comerciais não ficam desprotegidos e vulneráveis a vazamentos.
+
+
 ## Feito com vibecoding 🤖
 
 Não sou desenvolvedor. Construí isso usando IA como ferramenta de desenvolvimento. Se eu consegui, você também consegue.
