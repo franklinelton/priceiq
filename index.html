@@ -582,91 +582,30 @@ function renderComparator() {
   const content = document.getElementById('comparator-content');
   if(!elasticityData.length){content.innerHTML='<div class="no-data"><div class="no-data-icon">⚖️</div><div>Importe um CSV para usar o comparador</div></div>';return;}
   content.innerHTML = `
-    <div class="comp-layout">
-      <div class="card sim-controls" style="overflow-y:auto;max-height:85vh;">
-        <div class="card-title">Parâmetros</div>
-        <div>
-          <div class="field-label">Produto</div>
-          <select id="compProd" onchange="compare()">${elasticityData.map(d=>`<option value="${d.produto}">${d.produto}</option>`).join('')}</select>
-        </div>
-        <div>
-          <div class="field-label">Duração (semanas)</div>
-          <div class="range-row">
-            <input type="range" min="1" max="12" value="4" step="1" id="compWeeks" oninput="document.getElementById('compWeeksVal').innerText=this.value+'sem';compare()">
-            <span class="range-val" id="compWeeksVal">4sem</span>
-          </div>
-        </div>
-
-        <div class="mec-section">
-          <div class="mec-label" style="color:var(--accent2)">Mecânica A — Desconto direto</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Desconto aplicado a todos os compradores, em todas as unidades</div>
-          <div class="field-label">Desconto</div>
-          <div class="range-row">
-            <input type="range" min="5" max="50" value="15" step="1" id="compDirect" oninput="document.getElementById('compDirectVal').innerText=this.value+'%';compare()">
-            <span class="range-val" id="compDirectVal">15%</span>
-          </div>
-        </div>
-
-        <div class="mec-section">
-          <div class="mec-label" style="color:var(--green2)">Mecânica B — Leve X pague Y</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Unidades grátis embutidas. Preço na gôndola permanece cheio.</div>
-          <div class="field-label">Unidades que o cliente leva</div>
-          <div class="range-row">
-            <input type="range" min="2" max="6" value="3" step="1" id="compLeva" oninput="document.getElementById('compLevaVal').innerText=this.value;compare()">
-            <span class="range-val" id="compLevaVal">3</span>
-          </div>
-          <div class="field-label" style="margin-top:10px;">Unidades que o cliente paga</div>
-          <div class="range-row">
-            <input type="range" min="1" max="5" value="2" step="1" id="compPaga" oninput="document.getElementById('compPagaVal').innerText=this.value;compare()">
-            <span class="range-val" id="compPagaVal">2</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px;" id="compBundleDesc">Desconto efetivo: 33,3% por unidade</div>
-          <div class="field-label" style="margin-top:10px;">% clientes que levam essa quantidade</div>
-          <div class="range-row">
-            <input type="range" min="5" max="80" value="35" step="1" id="compMultiB" oninput="document.getElementById('compMultiBVal').innerText=this.value+'%';compare()">
-            <span class="range-val" id="compMultiBVal">35%</span>
-          </div>
-        </div>
-
-        <div class="mec-section">
-          <div class="mec-label" style="color:var(--amber2)">Mecânica C — Leve X ganhe D% na Nª unidade</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Desconto percentual em uma unidade específica do kit.</div>
-          <div class="field-label">Total de unidades no kit</div>
-          <div class="range-row">
-            <input type="range" min="2" max="6" value="3" step="1" id="compKitN" oninput="document.getElementById('compKitNVal').innerText=this.value;compare()">
-            <span class="range-val" id="compKitNVal">3</span>
-          </div>
-          <div class="field-label" style="margin-top:10px;">Qual unidade recebe o desconto</div>
-          <div class="range-row">
-            <input type="range" min="2" max="6" value="3" step="1" id="compKitUnit" oninput="document.getElementById('compKitUnitVal').innerText=this.value+'ª';compare()">
-            <span class="range-val" id="compKitUnitVal">3ª</span>
-          </div>
-          <div class="field-label" style="margin-top:10px;">% de desconto nessa unidade</div>
-          <div class="range-row">
-            <input type="range" min="5" max="100" value="20" step="1" id="compKitDisc" oninput="document.getElementById('compKitDiscVal').innerText=this.value+'%';compare()">
-            <span class="range-val" id="compKitDiscVal">20%</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px;" id="compSteppedDesc">Desconto efetivo: 6,7% por unidade</div>
-          <div class="field-label" style="margin-top:10px;">% clientes que levam essa quantidade</div>
-          <div class="range-row">
-            <input type="range" min="5" max="80" value="25" step="1" id="compMultiC" oninput="document.getElementById('compMultiCVal').innerText=this.value+'%';compare()">
-            <span class="range-val" id="compMultiCVal">25%</span>
-          </div>
+    <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;">
+        <div class="field-label">Produto</div>
+        <select id="compProd" onchange="compare()">${elasticityData.map(d=>`<option value="${d.produto}">${d.produto}</option>`).join('')}</select>
+      </div>
+      <div style="min-width:180px;">
+        <div class="field-label">Duração</div>
+        <div class="range-row">
+          <input type="range" min="1" max="12" value="4" step="1" id="compWeeks" oninput="document.getElementById('compWeeksVal').innerText=this.value+'sem';compare()">
+          <span class="range-val" id="compWeeksVal">4sem</span>
         </div>
       </div>
+    </div>
 
-      <div>
-        <div class="comp-panels" id="compPanels"></div>
-        <div style="margin-top:16px;" class="card">
-          <div class="card-title">Receita projetada por mecânica</div>
-          <div class="chart-wrap" style="height:200px"><canvas id="chartComp"></canvas></div>
-        </div>
-        <div style="margin-top:16px;" class="card">
-          <div class="card-title">Ponto de virada — % clientes multi-unidade</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Como a receita de cada mecânica varia conforme mais clientes compram a quantidade mínima do kit</div>
-          <div class="chart-wrap" style="height:220px"><canvas id="chartTipping"></canvas></div>
-        </div>
-      </div>
+    <div class="comp-panels" id="compPanels" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px;"></div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Receita projetada por mecânica</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartComp"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ponto de virada — % clientes multi-unidade</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Como a receita de cada mecânica varia conforme mais clientes compram a quantidade mínima do kit</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartTipping"></canvas></div>
     </div>
   `;
   setTimeout(compare, 100);
@@ -746,21 +685,18 @@ function compare() {
   const uplift    = Math.exp(d.beta2) - 1;
   const revBase   = basePrice * baseQtd * weeks;
 
-  // Read params
-  const directPct = parseFloat(document.getElementById('compDirect').value) / 100;
-  const levaB     = parseInt(document.getElementById('compLeva').value);
-  const pagaB     = Math.min(parseInt(document.getElementById('compPaga').value), levaB - 1);
-  const multiB    = parseFloat(document.getElementById('compMultiB').value) / 100;
-  const kitN      = parseInt(document.getElementById('compKitN').value);
-  const kitUnit   = Math.min(parseInt(document.getElementById('compKitUnit').value), kitN);
-  const kitDisc   = parseFloat(document.getElementById('compKitDisc').value) / 100;
-  const multiC    = parseFloat(document.getElementById('compMultiC').value) / 100;
+  // Read params — use fallback defaults for first render before inputs exist
+  const directPct = parseFloat(document.getElementById('compDirect')?.value ?? 15) / 100;
+  const levaB     = parseInt(document.getElementById('compLeva')?.value ?? 3);
+  const pagaB     = Math.min(parseInt(document.getElementById('compPaga')?.value ?? 2), levaB - 1);
+  const multiB    = parseFloat(document.getElementById('compMultiB')?.value ?? 35) / 100;
+  const kitN      = parseInt(document.getElementById('compKitN')?.value ?? 3);
+  const kitUnit   = Math.min(parseInt(document.getElementById('compKitUnit')?.value ?? 3), kitN);
+  const kitDisc   = parseFloat(document.getElementById('compKitDisc')?.value ?? 20) / 100;
+  const multiC    = parseFloat(document.getElementById('compMultiC')?.value ?? 25) / 100;
 
-  // Update descriptors
   const effB = ((levaB - pagaB) / levaB * 100).toFixed(1);
-  document.getElementById('compBundleDesc').innerText = `Desconto efetivo: ${effB}% por unidade`;
   const effC = (kitDisc / kitN * 100).toFixed(1);
-  document.getElementById('compSteppedDesc').innerText = `Desconto efetivo: ${effC}% por unidade`;
 
   const mA = calcMechanic(d, basePrice, baseQtd, uplift, weeks, { type:'direct', directPct });
   const mB = calcMechanic(d, basePrice, baseQtd, uplift, weeks, { type:'bundle', levaB, pagaB, multiB });
@@ -769,17 +705,54 @@ function compare() {
   const mechs = [mA, mB, mC];
   const incrs = mechs.map(m => m.rev - revBase);
   const bestIdx = incrs.indexOf(Math.max(...incrs));
-  const classes = ['direct','bundle','stepped'];
-  const colors  = ['rgba(124,109,250,0.7)','rgba(61,184,122,0.7)','rgba(224,154,48,0.7)'];
-  const winnerNames = ['Desconto direto','Leve e pague','Leve X ganhe D%'];
+  const classes  = ['direct','bundle','stepped'];
+  const colors   = ['rgba(124,109,250,0.7)','rgba(61,184,122,0.7)','rgba(224,154,48,0.7)'];
+  const accentVars = ['var(--accent2)','var(--green2)','var(--amber2)'];
+  const glows    = ['rgba(124,109,250,0.6)','rgba(61,184,122,0.6)','rgba(224,154,48,0.6)'];
+  const winnerNames   = ['Desconto direto','Leve e pague','Leve X ganhe D%'];
   const winnerClasses = ['direct-wins','bundle-wins','stepped-wins'];
 
-  // Render 3 panels
+  // Controls rendered at the top of each panel
+  const ctrl = [
+    // A — desconto direto
+    `<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--accent2);margin-bottom:6px;">parâmetros</div>
+      <div class="field-label">Desconto</div>
+      <div class="range-row"><input type="range" min="5" max="50" value="${Math.round(directPct*100)}" step="1" id="compDirect" oninput="document.getElementById('compDirectVal').innerText=this.value+'%';compare()"><span class="range-val" id="compDirectVal">${Math.round(directPct*100)}%</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">Aplicado a 100% dos compradores</div>
+    </div>`,
+    // B — leve e pague
+    `<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--green2);margin-bottom:6px;">parâmetros</div>
+      <div class="field-label">Unidades que leva</div>
+      <div class="range-row"><input type="range" min="2" max="6" value="${levaB}" step="1" id="compLeva" oninput="document.getElementById('compLevaVal').innerText=this.value;compare()"><span class="range-val" id="compLevaVal">${levaB}</span></div>
+      <div class="field-label" style="margin-top:8px;">Unidades que paga</div>
+      <div class="range-row"><input type="range" min="1" max="5" value="${pagaB}" step="1" id="compPaga" oninput="document.getElementById('compPagaVal').innerText=this.value;compare()"><span class="range-val" id="compPagaVal">${pagaB}</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;" id="compBundleDesc">Desconto efetivo: ${effB}% por unidade</div>
+      <div class="field-label" style="margin-top:8px;">% clientes que levam essa qtd</div>
+      <div class="range-row"><input type="range" min="5" max="80" value="${Math.round(multiB*100)}" step="1" id="compMultiB" oninput="document.getElementById('compMultiBVal').innerText=this.value+'%';compare()"><span class="range-val" id="compMultiBVal">${Math.round(multiB*100)}%</span></div>
+    </div>`,
+    // C — leve X ganhe D%
+    `<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--amber2);margin-bottom:6px;">parâmetros</div>
+      <div class="field-label">Unidades no kit</div>
+      <div class="range-row"><input type="range" min="2" max="6" value="${kitN}" step="1" id="compKitN" oninput="document.getElementById('compKitNVal').innerText=this.value;compare()"><span class="range-val" id="compKitNVal">${kitN}</span></div>
+      <div class="field-label" style="margin-top:8px;">Qual unidade recebe desconto</div>
+      <div class="range-row"><input type="range" min="2" max="6" value="${kitUnit}" step="1" id="compKitUnit" oninput="document.getElementById('compKitUnitVal').innerText=this.value+'ª';compare()"><span class="range-val" id="compKitUnitVal">${kitUnit}ª</span></div>
+      <div class="field-label" style="margin-top:8px;">% desconto nessa unidade</div>
+      <div class="range-row"><input type="range" min="5" max="100" value="${Math.round(kitDisc*100)}" step="1" id="compKitDisc" oninput="document.getElementById('compKitDiscVal').innerText=this.value+'%';compare()"><span class="range-val" id="compKitDiscVal">${Math.round(kitDisc*100)}%</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;" id="compSteppedDesc">Desconto efetivo: ${effC}% por unidade</div>
+      <div class="field-label" style="margin-top:8px;">% clientes que levam essa qtd</div>
+      <div class="range-row"><input type="range" min="5" max="80" value="${Math.round(multiC*100)}" step="1" id="compMultiC" oninput="document.getElementById('compMultiCVal').innerText=this.value+'%';compare()"><span class="range-val" id="compMultiCVal">${Math.round(multiC*100)}%</span></div>
+    </div>`
+  ];
+
   document.getElementById('compPanels').innerHTML = mechs.map((m,i) => `
-    <div class="comp-card ${classes[i]}" ${i===bestIdx?'style="box-shadow:0 0 0 2px '+['rgba(124,109,250,0.6)','rgba(61,184,122,0.6)','rgba(224,154,48,0.6)'][i]+'"':''}>
-      ${i===bestIdx?`<div style="font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:${['var(--accent2)','var(--green2)','var(--amber2)'][i]};margin-bottom:8px;">↑ melhor receita</div>`:''}
+    <div class="comp-card ${classes[i]}" ${i===bestIdx?`style="box-shadow:0 0 0 2px ${glows[i]}"`:''}>
+      ${ctrl[i]}
+      ${i===bestIdx?`<div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:${accentVars[i]};margin-bottom:8px;">↑ melhor receita</div>`:''}
       <div class="comp-card-title">${m.label}</div>
-      <div class="comp-metric"><span class="comp-metric-label">Preço efetivo/un</span><span class="comp-metric-val" style="color:${['var(--accent2)','var(--green2)','var(--amber2)'][i]}">R$ ${m.price.toFixed(2)}</span></div>
+      <div class="comp-metric"><span class="comp-metric-label">Preço efetivo/un</span><span class="comp-metric-val" style="color:${accentVars[i]}">R$ ${m.price.toFixed(2)}</span></div>
       <div class="comp-metric"><span class="comp-metric-label">Desconto efetivo/un</span><span class="comp-metric-val">${(m.effDisc*100).toFixed(1)}%</span></div>
       <div class="comp-metric"><span class="comp-metric-label">Volume/sem</span><span class="comp-metric-val">${Math.round(m.qtd/weeks)}</span></div>
       <div class="comp-metric"><span class="comp-metric-label">Receita (${weeks}sem)</span><span class="comp-metric-val">R$ ${Math.round(m.rev).toLocaleString('pt-BR')}</span></div>
@@ -791,15 +764,14 @@ function compare() {
       <div class="winner-banner ${winnerClasses[bestIdx]}">
         ↑ ${winnerNames[bestIdx]} gera o maior incremento de receita neste cenário —
         R$ ${Math.round(incrs[bestIdx]).toLocaleString('pt-BR')} acima do baseline,
-        R$ ${Math.round(incrs[bestIdx] - Math.max(...incrs.filter((_,i)=>i!==bestIdx))).toLocaleString('pt-BR')} a mais que a segunda melhor opção.
+        R$ ${Math.round(incrs[bestIdx] - Math.max(...incrs.filter((_,j)=>j!==bestIdx))).toLocaleString('pt-BR')} a mais que a segunda melhor opção.
       </div>
       <div class="tipping-box">
         <strong>Desconto efetivo comparado:</strong>
         A = ${(directPct*100).toFixed(1)}% &nbsp;|&nbsp;
         B = ${effB}% &nbsp;|&nbsp;
         C = ${effC}%
-        — Mecânicas com desconto efetivo similar tendem a gerar receita parecida.
-        A diferença real vem do comportamento de compra: quem tem mais clientes comprando a quantidade mínima do kit se beneficia mais das mecânicas B e C.
+        — A diferença real entre as mecânicas vem do comportamento de compra: quem tem mais clientes comprando a quantidade mínima do kit se beneficia mais de B e C.
       </div>
     </div>
   `;
