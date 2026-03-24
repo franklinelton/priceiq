@@ -33,20 +33,30 @@
   body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
 
   /* Layout */
-  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
-  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; }
-  .main { overflow-y: auto; }
+  .app { display: grid; grid-template-columns: 56px 1fr; min-height: 100vh; transition: grid-template-columns 0.25s ease; }
+  .app.expanded { grid-template-columns: 210px 1fr; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px 8px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; width: 56px; transition: width 0.25s ease; position: relative; z-index: 10; }
+  .app.expanded .sidebar { width: 210px; }
+  .main { overflow-y: auto; min-width: 0; }
 
   /* Sidebar */
-  .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); padding: 0 8px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); padding: 4px 4px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px; white-space: nowrap; overflow: hidden; display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 24px; height: 24px; min-width: 24px; background: rgba(124,109,250,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent2); }
+  .logo-text { opacity: 0; transition: opacity 0.15s ease 0.05s; white-space: nowrap; }
+  .app.expanded .logo-text { opacity: 1; }
   .logo span { color: var(--accent2); }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 8px; border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 500; transition: all 0.15s; white-space: nowrap; overflow: hidden; position: relative; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: rgba(124,109,250,0.15); color: var(--accent2); }
-  .nav-icon { width: 16px; height: 16px; opacity: 0.7; }
-  .sidebar-section { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 16px 10px 6px; }
-  .upload-btn { margin-top: auto; background: rgba(124,109,250,0.2); border: 1px solid rgba(124,109,250,0.3); border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; color: var(--accent2); font-size: 12px; font-weight: 500; transition: all 0.15s; }
+  .nav-icon { width: 18px; height: 18px; min-width: 18px; opacity: 0.7; }
+  .nav-label { opacity: 0; transition: opacity 0.15s ease 0.05s; }
+  .app.expanded .nav-label { opacity: 1; }
+  .sidebar-section { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); padding: 16px 8px 6px; white-space: nowrap; overflow: hidden; opacity: 0; transition: opacity 0.15s ease; height: 0; padding: 0; }
+  .app.expanded .sidebar-section { opacity: 1; height: auto; padding: 16px 8px 6px; }
+  .upload-btn { margin-top: auto; background: rgba(124,109,250,0.2); border: 1px solid rgba(124,109,250,0.3); border-radius: 8px; padding: 9px 8px; text-align: left; cursor: pointer; color: var(--accent2); font-size: 12px; font-weight: 500; transition: all 0.15s; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
   .upload-btn:hover { background: rgba(124,109,250,0.3); }
+  .upload-btn-text { opacity: 0; transition: opacity 0.15s ease 0.05s; }
+  .app.expanded .upload-btn-text { opacity: 1; }
   #fileInput { display: none; }
 
   /* Pages */
@@ -145,26 +155,6 @@
   .tipping-box strong { color: var(--text); font-weight: 500; }
 
   /* AI Chat */
-  .ai-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
-  .chat-box { display: flex; flex-direction: column; height: 520px; }
-  .chat-msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px; }
-  .msg { max-width: 85%; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
-  .msg.ai { background: var(--surface2); color: var(--text); align-self: flex-start; }
-  .msg.user { background: rgba(124,109,250,0.2); color: var(--text); align-self: flex-end; border: 1px solid rgba(124,109,250,0.3); }
-  .chat-input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
-  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
-  .chat-input:focus { border-color: var(--accent); }
-  .send-btn { background: var(--accent); border: none; border-radius: 8px; width: 36px; cursor: pointer; color: white; font-size: 16px; transition: all 0.15s; }
-  .send-btn:hover { background: var(--accent2); color: var(--bg); }
-  .suggestions { display: flex; flex-direction: column; gap: 8px; }
-  .suggestion { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 12px; color: var(--text2); transition: all 0.15s; }
-  .suggestion:hover { border-color: var(--accent); color: var(--accent2); }
-  .typing { display: flex; gap: 4px; padding: 4px 0; }
-  .typing span { width: 6px; height: 6px; background: var(--text3); border-radius: 50%; animation: bounce 1.2s infinite; }
-  .typing span:nth-child(2) { animation-delay: 0.2s; }
-  .typing span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
-
   /* Status bar */
   .status-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(61,184,122,0.08); border: 1px solid rgba(61,184,122,0.2); border-radius: 6px; font-size: 11px; color: var(--green2); margin-bottom: 20px; }
   .status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
@@ -176,32 +166,31 @@
 <input type="file" id="fileInput" accept=".csv">
 <div class="app">
   <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="logo">Price<span>IQ</span></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">P<span style="color:var(--accent2)">Q</span></div>
+      <span class="logo-text">Price<span>IQ</span></span>
+    </div>
     <div class="sidebar-section">Análise</div>
     <div class="nav-item active" onclick="nav('overview')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="4" height="7" rx="1" fill="currentColor" opacity=".6"/><rect x="6" y="4" width="4" height="11" rx="1" fill="currentColor"/><rect x="11" y="1" width="4" height="14" rx="1" fill="currentColor" opacity=".6"/></svg>
-      Visão geral
+      <span class="nav-label">Visão geral</span>
     </div>
     <div class="nav-item" onclick="nav('elasticity')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M1 13 L4 8 L7 10 L10 4 L13 6 L15 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Elasticidade
+      <span class="nav-label">Elasticidade</span>
     </div>
     <div class="nav-item" onclick="nav('simulator')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      Simulador
+      <span class="nav-label">Simulador</span>
     </div>
     <div class="nav-item" onclick="nav('comparator')">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="6" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="3" width="6" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4 7h2M10 7h2M4 9h2M10 9h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      Comparador
-    </div>
-    <div class="sidebar-section">IA</div>
-    <div class="nav-item" onclick="nav('ai')">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M8 5l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Consultar IA
+      <span class="nav-label">Comparador</span>
     </div>
     <div class="upload-btn" onclick="document.getElementById('fileInput').click()">
-      ↑ Importar CSV
+      <svg style="width:16px;height:16px;min-width:16px" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 5l3-3 3 3M3 11v2h10v-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="upload-btn-text">Importar CSV</span>
     </div>
   </aside>
 
@@ -268,36 +257,6 @@
       <div id="comparator-content"><div class="no-data"><div class="no-data-icon">⚖️</div><div>Importe um CSV para usar o comparador</div></div></div>
     </div>
 
-    <!-- AI page -->
-    <div id="page-ai" class="page">
-      <div class="page-header">
-        <div class="page-title">Consultar IA</div>
-        <div class="page-sub">Pergunte sobre elasticidade, promoções e estratégia de preços</div>
-      </div>
-      <div class="ai-layout">
-        <div class="card" style="padding: 0;">
-          <div class="chat-box">
-            <div class="chat-msgs" id="chatMsgs">
-              <div class="msg ai">Olá! Sou seu assistente de precificação. Posso analisar elasticidade, simular cenários e recomendar estratégias. Importe seus dados ou faça uma pergunta!</div>
-            </div>
-            <div class="chat-input-row">
-              <input class="chat-input" id="chatInput" placeholder="Ex: Qual produto tem maior elasticidade?" onkeydown="if(event.key==='Enter')sendChat()">
-              <button class="send-btn" onclick="sendChat()">→</button>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Perguntas sugeridas</div>
-          <div class="suggestions">
-            <div class="suggestion" onclick="askSuggestion(this.innerText)">Qual produto tem maior elasticidade de preço?</div>
-            <div class="suggestion" onclick="askSuggestion(this.innerText)">Quais promoções geraram mais volume sem sacrificar margem?</div>
-            <div class="suggestion" onclick="askSuggestion(this.innerText)">Qual é o preço ótimo para maximizar receita?</div>
-            <div class="suggestion" onclick="askSuggestion(this.innerText)">Existe sazonalidade nas vendas por categoria?</div>
-            <div class="suggestion" onclick="askSuggestion(this.innerText)">Recomende uma estratégia de preço para o próximo mês</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
 </div>
 
@@ -897,46 +856,11 @@ function compare() {
   });
 }
 
-// AI Chat
-async function sendChat() {
-  const input = document.getElementById('chatInput');
-  const msg = input.value.trim();
-  if(!msg) return;
-  input.value = '';
-  appendMsg(msg, 'user');
-  const typing = appendTyping();
-  const context = elasticityData.length ? `Contexto dos dados (regressão múltipla log-log com dummy de promoção): ${JSON.stringify(elasticityData.map(d=>({produto:d.produto,categoria:d.categoria,elasticidade_pura:d.elasticidade,uplift_promocional_pct:d.uplift,precoMedio:d.precoMedio.toFixed(2),receitaTotal:Math.round(d.receitaTotal),semanas_com_promocao:d.comPromocao,total_observacoes:d.totalObs})))}. A elasticidade_pura é β1 (efeito do preço isolado). O uplift_promocional_pct é (e^β2−1)×100, ou seja, quanto % o volume sobe só por haver promoção independente do desconto.` : 'Nenhum dado importado ainda.';
-  try {
-    const resp = await fetch('https://priceiq-proxy.eltonfrank.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`Você é um especialista em elasticidade de preços e estratégia comercial. Responda em português, de forma direta e prática. Use os dados fornecidos para embasar suas respostas. ${context}`,messages:[{role:'user',content:msg}]})});
-    const data = await resp.json();
-    typing.remove();
-    appendMsg(data.content?.[0]?.text || 'Não consegui processar.', 'ai');
-  } catch(e) {
-    typing.remove();
-    appendMsg('Erro ao conectar com a IA. Verifique sua conexão.', 'ai');
-  }
-}
-
-function askSuggestion(text) { document.getElementById('chatInput').value=text; sendChat(); }
-
-function appendMsg(text, role) {
-  const msgs = document.getElementById('chatMsgs');
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.innerText = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
-function appendTyping() {
-  const msgs = document.getElementById('chatMsgs');
-  const div = document.createElement('div');
-  div.className = 'msg ai';
-  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
+// Sidebar hover expand/collapse
+const sidebar = document.getElementById('sidebar');
+const app = document.querySelector('.app');
+sidebar.addEventListener('mouseenter', () => app.classList.add('expanded'));
+sidebar.addEventListener('mouseleave', () => app.classList.remove('expanded'));
 
 // Template download
 function downloadTemplate() {
