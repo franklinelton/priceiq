@@ -907,7 +907,7 @@ async function sendChat() {
   const typing = appendTyping();
   const context = elasticityData.length ? `Contexto dos dados (regressão múltipla log-log com dummy de promoção): ${JSON.stringify(elasticityData.map(d=>({produto:d.produto,categoria:d.categoria,elasticidade_pura:d.elasticidade,uplift_promocional_pct:d.uplift,precoMedio:d.precoMedio.toFixed(2),receitaTotal:Math.round(d.receitaTotal),semanas_com_promocao:d.comPromocao,total_observacoes:d.totalObs})))}. A elasticidade_pura é β1 (efeito do preço isolado). O uplift_promocional_pct é (e^β2−1)×100, ou seja, quanto % o volume sobe só por haver promoção independente do desconto.` : 'Nenhum dado importado ainda.';
   try {
-    const resp = await fetch('priceiq-proxy.eltonfrank.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`Você é um especialista em elasticidade de preços e estratégia comercial. Responda em português, de forma direta e prática. Use os dados fornecidos para embasar suas respostas. ${context}`,messages:[{role:'user',content:msg}]})});
+    const resp = await fetch('https://priceiq-proxy.eltonfrank.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`Você é um especialista em elasticidade de preços e estratégia comercial. Responda em português, de forma direta e prática. Use os dados fornecidos para embasar suas respostas. ${context}`,messages:[{role:'user',content:msg}]})});
     const data = await resp.json();
     typing.remove();
     appendMsg(data.content?.[0]?.text || 'Não consegui processar.', 'ai');
