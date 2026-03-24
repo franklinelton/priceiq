@@ -250,9 +250,12 @@
 
     <!-- Comparator page -->
     <div id="page-comparator" class="page">
-      <div class="page-header">
-        <div class="page-title">Comparador de mecânicas</div>
-        <div class="page-sub">Desconto direto vs leve e pague — qual gera mais resultado para o seu perfil de clientes?</div>
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+        <div>
+          <div class="page-title">Comparador de mecânicas</div>
+          <div class="page-sub">Desconto direto vs leve e pague — qual gera mais resultado para o seu perfil de clientes?</div>
+        </div>
+        <div id="comp-winner-header" style="flex:1;min-width:220px;max-width:420px;"></div>
       </div>
       <div id="comparator-content"><div class="no-data"><div class="no-data-icon">⚖️</div><div>Importe um CSV para usar o comparador</div></div></div>
     </div>
@@ -747,6 +750,18 @@ function compare() {
     </div>`
   ];
 
+  // Winner banner — injected in page header
+  const winnerEl = document.getElementById('comp-winner-header');
+  if(winnerEl) {
+    winnerEl.innerHTML = `
+      <div class="winner-banner ${winnerClasses[bestIdx]}" style="margin-top:0;">
+        ↑ ${winnerNames[bestIdx]} vence —
+        R$ ${Math.round(incrs[bestIdx]).toLocaleString('pt-BR')} acima do baseline,
+        R$ ${Math.round(incrs[bestIdx] - Math.max(...incrs.filter((_,j)=>j!==bestIdx))).toLocaleString('pt-BR')} a mais que a 2ª opção.
+      </div>
+    `;
+  }
+
   document.getElementById('compPanels').innerHTML = mechs.map((m,i) => `
     <div class="comp-card ${classes[i]}" ${i===bestIdx?`style="box-shadow:0 0 0 2px ${glows[i]}"`:''}>
       ${ctrl[i]}
@@ -761,11 +776,6 @@ function compare() {
     </div>
   `).join('') + `
     <div style="grid-column:1/-1">
-      <div class="winner-banner ${winnerClasses[bestIdx]}">
-        ↑ ${winnerNames[bestIdx]} gera o maior incremento de receita neste cenário —
-        R$ ${Math.round(incrs[bestIdx]).toLocaleString('pt-BR')} acima do baseline,
-        R$ ${Math.round(incrs[bestIdx] - Math.max(...incrs.filter((_,j)=>j!==bestIdx))).toLocaleString('pt-BR')} a mais que a segunda melhor opção.
-      </div>
       <div class="tipping-box">
         <strong>Desconto efetivo comparado:</strong>
         A = ${(directPct*100).toFixed(1)}% &nbsp;|&nbsp;
