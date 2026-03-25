@@ -1,4 +1,4 @@
-# PriceIQ — Analisador de Elasticidade de Preços
+# PriceIQ — [Analisador de Elasticidade de Preços](https://franklinelton.github.io/priceiq/)
 
 ## Por qual motivo resolvi criar essa aplicação web?
 
